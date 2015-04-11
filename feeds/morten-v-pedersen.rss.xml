@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>blog.mortenvp.com</title><link>/</link><description></description><atom:link href="/feeds/morten-v-pedersen.rss.xml" rel="self"></atom:link><lastBuildDate>Tue, 03 Mar 2015 12:43:00 +0100</lastBuildDate><item><title>Creating slides using the iPython notebook</title><link>/creating-slides-using-the-ipython-notebook.html</link><description>&lt;p&gt;This semester I'm teaching a free study activity called C++11/14 basic
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>blog.mortenvp.com</title><link>http://blog.mortenvp.com/</link><description></description><atom:link href="http://blog.mortenvp.com/feeds/morten-v-pedersen.rss.xml" rel="self"></atom:link><lastBuildDate>Tue, 03 Mar 2015 12:43:00 +0100</lastBuildDate><item><title>Creating slides using the iPython notebook</title><link>http://blog.mortenvp.com/creating-slides-using-the-ipython-notebook.html</link><description>&lt;p&gt;This semester I'm teaching a free study activity called C++11/14 basic
 introduction and as an experiment I decided to try to create my slides
 using an iPython notebook.&lt;/p&gt;
 &lt;p&gt;Turns out this works pretty well, and&lt;/p&gt;
@@ -21,7 +21,7 @@ forwards requests to the reveal.js library:&lt;/p&gt;
 &lt;/pre&gt;&lt;/div&gt;
 
 
-&lt;p&gt;So if we want to use the same version of reveal.js we should use version 2.5.0.&lt;/p&gt;</description><dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">Morten V. Pedersen</dc:creator><pubDate>Tue, 03 Mar 2015 12:43:00 +0100</pubDate><guid>tag:,2015-03-03:creating-slides-using-the-ipython-notebook.html</guid></item><item><title>Creating a Pelican powered iPython notebook blog</title><link>/creating-a-pelican-powered-ipython-notebook-blog.html</link><description>&lt;p&gt;Following is a review of my favorite mechanical keyboard.&lt;/p&gt;
+&lt;p&gt;So if we want to use the same version of reveal.js we should use version 2.5.0.&lt;/p&gt;</description><dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">Morten V. Pedersen</dc:creator><pubDate>Tue, 03 Mar 2015 12:43:00 +0100</pubDate><guid>tag:blog.mortenvp.com,2015-03-03:creating-slides-using-the-ipython-notebook.html</guid></item><item><title>Creating a Pelican powered iPython notebook blog</title><link>http://blog.mortenvp.com/creating-a-pelican-powered-ipython-notebook-blog.html</link><description>&lt;p&gt;Following is a review of my favorite mechanical keyboard. Go go.&lt;/p&gt;
 &lt;p&gt;
 &lt;div class="cell border-box-sizing code_cell rendered"&gt;
 &lt;div class="input"&gt;
@@ -499,4 +499,4 @@ RCT9iIiIiDZCJP2IiIiINkIk/YiIiIg2QiT9iIiIiDZCJP2IiIiINkIk/YiIiIg2QiT9iIiIiDbC
 &lt;/div&gt;
 
 &lt;/div&gt;
-test&lt;/p&gt;</description><dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">Morten V. Pedersen</dc:creator><pubDate>Thu, 26 Feb 2015 15:00:00 +0100</pubDate><guid>tag:,2015-02-26:creating-a-pelican-powered-ipython-notebook-blog.html</guid></item></channel></rss>
+test&lt;/p&gt;</description><dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">Morten V. Pedersen</dc:creator><pubDate>Thu, 26 Feb 2015 15:00:00 +0100</pubDate><guid>tag:blog.mortenvp.com,2015-02-26:creating-a-pelican-powered-ipython-notebook-blog.html</guid></item></channel></rss>
