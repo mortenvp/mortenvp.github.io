@@ -1,5 +1,216 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>blog.mortenvp.com</title><link href="http://blog.mortenvp.com/" rel="alternate"></link><link href="http://blog.mortenvp.com/feeds/all.atom.xml" rel="self"></link><id>http://blog.mortenvp.com/</id><updated>2015-03-03T12:43:00+01:00</updated><entry><title>Creating slides using the iPython notebook</title><link href="http://blog.mortenvp.com/creating-slides-using-the-ipython-notebook.html" rel="alternate"></link><updated>2015-03-03T12:43:00+01:00</updated><author><name>Morten V. Pedersen</name></author><id>tag:blog.mortenvp.com,2015-03-03:creating-slides-using-the-ipython-notebook.html</id><summary type="html">&lt;p&gt;This semester I'm teaching a free study activity called C++11/14 basic
+<feed xmlns="http://www.w3.org/2005/Atom"><title>blog.mortenvp.com</title><link href="http://blog.mortenvp.com/" rel="alternate"></link><link href="http://blog.mortenvp.com/feeds/all.atom.xml" rel="self"></link><id>http://blog.mortenvp.com/</id><updated>2015-04-28T14:39:00+02:00</updated><entry><title>Emulating Networks with Mininet</title><link href="http://blog.mortenvp.com/emulating-networks-with-mininet.html" rel="alternate"></link><updated>2015-04-28T14:39:00+02:00</updated><author><name>Morten V. Pedersen</name></author><id>tag:blog.mortenvp.com,2015-04-28:emulating-networks-with-mininet.html</id><summary type="html">&lt;p&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Some time ago I came across &lt;a href="http://mininet.org/"&gt;Mininet&lt;/a&gt; which allows us setup and emulate networks on a single machine. Mininet uses the &lt;a href="http://en.wikipedia.org/wiki/LXC"&gt;Linux container&lt;/a&gt; technology (similar to &lt;a href="http://docker.com"&gt;Docker&lt;/a&gt;) to run multiple lightweight isolated Linux environments on a single Linux host. I never had time to play with it, but recently I wanted to experiment with a new transport protocol and see how it reacted to lossy links and Mininet seemed like an good choice for emulating the network.&lt;/p&gt;
+&lt;p&gt;Mininet seems quite popular for people how wants to emulate and experiment with newer networking concepts such as SDN (Software Defined Networks). Beause the overhead of running Linux containers is very low, it allows us to emulate large networks with many connected hosts on a single computer (unfeasible with virtual machines). But, it can also be used to emulated simple networks like point-to-point links, with some loss and delay characteristics. Which is what we will do here. Another great strength of Mininet is that it allows us to run existing applications over these networks. So for example on one emulated host I can open the Firefox browser and on another host a webserver. I can even connect hosts on my emulated network to the real network and let them speak to services on the Internet. How great is that!?&lt;/p&gt;
+&lt;p&gt;Let get this thing up and running.&lt;/p&gt;
+&lt;h2 id="installing-mininet"&gt;Installing mininet&lt;/h2&gt;
+&lt;p&gt;So the first thing we need to do is to install Mininet. There are a copule of options to choose from the easiest way it to use the prepared virtual machine. You can find additional instructions on how to set it up on the Mininet webpage &lt;a href="http://mininet.org/vm-setup-notes/"&gt;here&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;Note: The Mininet setup guide suggests that you add a &amp;quot;Host-only Adapter&amp;quot;, when I initially tried this, it gave me a &amp;quot;no host only network adapter selected&amp;quot; error. This was resolve following the suggestions described &lt;a href="no%20host%20only%20network%20adapter%20selected"&gt;here&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;For some reason after booting the Mininet virtual machine the &lt;em&gt;host only&lt;/em&gt; network was not brought up, the commands to make it accessible (run the following commands in the virtual machine):&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;sudo ip link set dev eth1 up
+sudo dhclient eth1
+ip link show&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;First we bring up the interface, then ask for an IP using DHCP and finally we show the available interfaces and their IPs.&lt;/p&gt;
+&lt;p&gt;Alternatively you can add the following to &lt;code&gt;/etc/network/interfaces&lt;/code&gt; inside the virtual machine:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;auto eth1
+iface eth1 inet dhcp&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Now I could ssh from my machine to the Mininet virtual machine using:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;ssh mininet@192.168.56.101&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;To make things a bit easier I add the following to &lt;code&gt;.ssh/config&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;Host mininet
+User mininet
+HostName 192.168.56.101&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Now I can login using &lt;code&gt;ssh mininet&lt;/code&gt;, see the bottom of the &lt;a href="http://mininet.org/vm-setup-notes/"&gt;Mininet VM setup notes&lt;/a&gt; guide to see how to setup password less login.&lt;/p&gt;
+&lt;h3 id="shared-folders"&gt;Shared folders&lt;/h3&gt;
+&lt;p&gt;To make it easier to move files between the virtual machine and the host computer you can setup a shared folder. In Virtualbox go to the settings for the Mininet virtual machine and you should be able to select a host folder that you want to share in the virtual machine. In my case is just created a folder called &lt;code&gt;vm_mininet&lt;/code&gt; in my home directory.&lt;/p&gt;
+&lt;p&gt;To access shared folders inside the virtual machine we need to install the Virtualbox Guest Additions. Fortunately there is a package for that, so inside the Mininet virtual machine run:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;sudo apt-get install virtualbox-guest-utils&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;As a final step you need to add the &lt;code&gt;mininet&lt;/code&gt; user to the &lt;code&gt;vboxsf&lt;/code&gt; group to have access to the folder:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;usermod -aG vboxsf mininet&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Rebooting the virtual machine, and my shared folder shows up under &lt;code&gt;/media/sf_vm_mininet&lt;/code&gt;.&lt;/p&gt;
+&lt;h2 id="creating-the-network"&gt;Creating the network&lt;/h2&gt;
+&lt;p&gt;Now that we have the Mininet virtual machine up and running we can start to emulate some networks. One of the really cool things about Mininet is how easy it is to define network topologies using Python scripts. As an example lets try to create a network with two hosts and ping from one to the other.&lt;/p&gt;
+&lt;p&gt;The script for setting this up is available &lt;a href="./simple_ping.py"&gt;here&lt;/a&gt;. The &lt;code&gt;%%file simple_ping.py&lt;/code&gt; is an iPython cell magic command that will save the content of the cell to a file called &lt;code&gt;simple_ping.py&lt;/code&gt;, so that we later can runn the script in our Mininet virtual machine.&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[8]:
+&lt;/div&gt;
+
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="o"&gt;%%&lt;/span&gt;&lt;span class="k"&gt;file&lt;/span&gt; &lt;span class="n"&gt;simple_ping&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;py&lt;/span&gt;
+&lt;span class="c"&gt;#!/usr/bin/python&lt;/span&gt;
+
+&lt;span class="sd"&gt;&amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+&lt;span class="sd"&gt;Simple example of point-to-point link running ping&lt;/span&gt;
+&lt;span class="sd"&gt;&amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;mininet.topo&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;Topo&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;mininet.net&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;Mininet&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;mininet.node&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;OVSController&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;mininet.link&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;TCLink&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;mininet.util&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;pmonitor&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;mininet.log&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;setLogLevel&lt;/span&gt;
+
+&lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;__name__&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;__main__&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+    &lt;span class="n"&gt;setLogLevel&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;info&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="c"&gt;# Build the topology we want to play with:&lt;/span&gt;
+    &lt;span class="c"&gt;#&lt;/span&gt;
+    &lt;span class="c"&gt;#             +-----------------------+&lt;/span&gt;
+    &lt;span class="c"&gt;#             |     10Mbit/s link     |&lt;/span&gt;
+    &lt;span class="c"&gt;#             |     5ms delay         |&lt;/span&gt;
+    &lt;span class="c"&gt;#             |     10% packet loss   |&lt;/span&gt;
+    &lt;span class="c"&gt;#             |                       |&lt;/span&gt;
+    &lt;span class="c"&gt;#             +-----------+-----------+&lt;/span&gt;
+    &lt;span class="c"&gt;#                         |&lt;/span&gt;
+    &lt;span class="c"&gt;#                         |&lt;/span&gt;
+    &lt;span class="c"&gt;#                         |&lt;/span&gt;
+    &lt;span class="c"&gt;#                         |&lt;/span&gt;
+    &lt;span class="c"&gt;# +-------------+         v        +-------------+&lt;/span&gt;
+    &lt;span class="c"&gt;# |             |                  |             |&lt;/span&gt;
+    &lt;span class="c"&gt;# | host 1 (h1) +------------------+ host 2 (h2) |&lt;/span&gt;
+    &lt;span class="c"&gt;# |             |                  |             |&lt;/span&gt;
+    &lt;span class="c"&gt;# +-------------+                  +-------------+&lt;/span&gt;
+    &lt;span class="c"&gt;#   &lt;/span&gt;
+    &lt;span class="n"&gt;topo&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Topo&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="n"&gt;topo&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;addHost&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;h1&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;topo&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;addHost&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;h2&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;topo&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;addLink&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;h1&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;h2&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;bw&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;delay&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;5ms&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;loss&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="c"&gt;# The TCLink is needed for use to set the bandwidth, delay and loss&lt;/span&gt;
+    &lt;span class="c"&gt;# constraints on the link&lt;/span&gt;
+    &lt;span class="c"&gt;#&lt;/span&gt;
+    &lt;span class="c"&gt;# waitConnected&lt;/span&gt;
+    &lt;span class="n"&gt;net&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Mininet&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;topo&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;topo&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+                  &lt;span class="n"&gt;link&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;TCLink&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+                  &lt;span class="n"&gt;waitConnected&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="bp"&gt;True&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;net&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;start&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+    &lt;span class="n"&gt;h1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;h2&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;net&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;getNodeByName&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;h1&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;h2&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="c"&gt;# Will open the two ping processes on both hosts and read the output&lt;/span&gt;
+    &lt;span class="n"&gt;popens&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{}&lt;/span&gt;
+    &lt;span class="n"&gt;popens&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;h1&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;h1&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;popen&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;ping -c10 {}&amp;#39;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;format&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;h2&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;IP&lt;/span&gt;&lt;span class="p"&gt;()))&lt;/span&gt;
+    &lt;span class="n"&gt;popens&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;h2&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;h2&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;popen&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;ping -c10 {}&amp;#39;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;format&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;h1&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;IP&lt;/span&gt;&lt;span class="p"&gt;()))&lt;/span&gt;
+
+    &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;host&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;line&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;pmonitor&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;popens&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;host&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="c"&gt;# Output each line written as &amp;quot;&amp;lt;hX&amp;gt;: some output&amp;quot;, where X&lt;/span&gt;
+            &lt;span class="c"&gt;# will be replaced by the host number i.e. 1 or 2.&lt;/span&gt;
+            &lt;span class="k"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;&amp;lt;{}&amp;gt;: {}&amp;quot;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;format&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;host&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;name&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;line&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;strip&lt;/span&gt;&lt;span class="p"&gt;()))&lt;/span&gt;
+
+    &lt;span class="n"&gt;net&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;stop&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;div class="output_wrapper"&gt;
+&lt;div class="output"&gt;
+
+
+&lt;div class="output_area"&gt;&lt;div class="prompt"&gt;&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_stream output_stdout"&gt;
+&lt;pre class="ipynb"&gt;Overwriting simple_ping.py
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;To run the above network simply copy the &lt;code&gt;simple_ping.py&lt;/code&gt; file to the Mininet virtual machine and run it (e.g. using the shared folder):&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;sudo ./simple_ping.py&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The script should now generate a bunch of output, giving you diagnostics about the network and output from the two ping processes.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;mininet@mininet-vm:/media/sf_vm_mininet$ sudo ./simple_ping.py 
+*** Creating network
+*** Adding controller
+*** Adding hosts:
+h1 h2 
+*** Adding switches:
+
+*** Adding links:
+(10.00Mbit 5ms delay 10% loss) (10.00Mbit 5ms delay 10% loss) (h1, h2) 
+*** Configuring hosts
+h1 h2 
+*** Starting controller
+c0 
+*** Starting 0 switches
+
+*** Waiting for switches to connect
+
+&amp;lt;h2&amp;gt;: PING 10.0.0.1 (10.0.0.1) 56(84) bytes of data.
+&amp;lt;h2&amp;gt;: 64 bytes from 10.0.0.1: icmp_seq=1 ttl=64 time=12.5 ms
+&amp;lt;h1&amp;gt;: PING 10.0.0.2 (10.0.0.2) 56(84) bytes of data.
+&amp;lt;h1&amp;gt;: 64 bytes from 10.0.0.2: icmp_seq=1 ttl=64 time=17.8 ms
+&amp;lt;h1&amp;gt;: 64 bytes from 10.0.0.2: icmp_seq=2 ttl=64 time=10.4 ms
+&amp;lt;h2&amp;gt;: 64 bytes from 10.0.0.1: icmp_seq=2 ttl=64 time=10.2 ms
+&amp;lt;h1&amp;gt;: 64 bytes from 10.0.0.2: icmp_seq=3 ttl=64 time=10.2 ms
+&amp;lt;h2&amp;gt;: 64 bytes from 10.0.0.1: icmp_seq=3 ttl=64 time=10.2 ms
+&amp;lt;h1&amp;gt;: 64 bytes from 10.0.0.2: icmp_seq=4 ttl=64 time=10.2 ms
+&amp;lt;h2&amp;gt;: 64 bytes from 10.0.0.1: icmp_seq=4 ttl=64 time=10.2 ms
+&amp;lt;h2&amp;gt;: 64 bytes from 10.0.0.1: icmp_seq=5 ttl=64 time=10.1 ms
+&amp;lt;h2&amp;gt;: 64 bytes from 10.0.0.1: icmp_seq=6 ttl=64 time=10.2 ms
+&amp;lt;h1&amp;gt;: 64 bytes from 10.0.0.2: icmp_seq=6 ttl=64 time=10.2 ms
+&amp;lt;h2&amp;gt;: 64 bytes from 10.0.0.1: icmp_seq=7 ttl=64 time=10.1 ms
+&amp;lt;h2&amp;gt;: 64 bytes from 10.0.0.1: icmp_seq=8 ttl=64 time=10.1 ms
+&amp;lt;h1&amp;gt;: 64 bytes from 10.0.0.2: icmp_seq=8 ttl=64 time=10.1 ms
+&amp;lt;h2&amp;gt;: 64 bytes from 10.0.0.1: icmp_seq=9 ttl=64 time=10.1 ms
+&amp;lt;h1&amp;gt;: 64 bytes from 10.0.0.2: icmp_seq=9 ttl=64 time=11.0 ms
+&amp;lt;h2&amp;gt;: 64 bytes from 10.0.0.1: icmp_seq=10 ttl=64 time=10.1 ms
+&amp;lt;h2&amp;gt;: 
+&amp;lt;h2&amp;gt;: --- 10.0.0.1 ping statistics ---
+&amp;lt;h2&amp;gt;: 10 packets transmitted, 10 received, 0% packet loss, time 9014ms
+&amp;lt;h2&amp;gt;: rtt min/avg/max/mdev = 10.139/10.442/12.594/0.725 ms
+&amp;lt;h1&amp;gt;: 64 bytes from 10.0.0.2: icmp_seq=10 ttl=64 time=10.1 ms
+&amp;lt;h1&amp;gt;: 
+&amp;lt;h1&amp;gt;: --- 10.0.0.2 ping statistics ---
+&amp;lt;h1&amp;gt;: 10 packets transmitted, 8 received, 20% packet loss, time 9024ms
+&amp;lt;h1&amp;gt;: rtt min/avg/max/mdev = 10.144/11.294/17.819/2.484 ms
+*** Stopping 1 controllers
+c0 
+*** Stopping 0 switches
+
+*** Stopping 1 links
+
+*** Stopping 2 hosts
+h1 h2 
+*** Done&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Pretty cool right?&lt;/p&gt;
+&lt;p&gt;The code was tested with Mininet version &lt;code&gt;2.2.0&lt;/code&gt;, to see which version you have run:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;&amp;gt;&amp;gt;&amp;gt; import mininet
+&amp;gt;&amp;gt;&amp;gt; print(mininet.net.VERSION)
+2.2.0&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;For more examples see the official &lt;a href="https://github.com/mininet/mininet/tree/master/examples"&gt;Mininet examples&lt;/a&gt;. Also you can find lots more information on the API etc. on the Mininet pages.&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;&lt;em&gt;This blog post was written entirely in the IPython Notebook. The full notebook can be downloaded &lt;a href="https://cdn.rawgit.com/mortenvp/mortenvp-pelican/master/content/notebooks/emulating_networks_with_mininet/emulating_networks_with_mininet.ipynb"&gt;here&lt;/a&gt;, or viewed statically &lt;a href="http://nbviewer.ipython.org/url/github.com/mortenvp/mortenvp-pelican/blob/master/content/notebooks/emulating_networks_with_mininet/emulating_networks_with_mininet.ipynb"&gt;here&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;https://raw.githubusercontent.com/ipython/ipython/1.x/examples/notebooks/Cell%20Magics.ipynb&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;/p&gt;</summary></entry><entry><title>Creating slides using the iPython notebook</title><link href="http://blog.mortenvp.com/creating-slides-using-the-ipython-notebook.html" rel="alternate"></link><updated>2015-03-03T12:43:00+01:00</updated><author><name>Morten V. Pedersen</name></author><id>tag:blog.mortenvp.com,2015-03-03:creating-slides-using-the-ipython-notebook.html</id><summary type="html">&lt;p&gt;This semester I'm teaching a free study activity called C++11/14 basic
 introduction and as an experiment I decided to try to create my slides
 using an iPython notebook.&lt;/p&gt;
 &lt;p&gt;Turns out this works pretty well, and&lt;/p&gt;
